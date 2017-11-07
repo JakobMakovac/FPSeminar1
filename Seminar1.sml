@@ -42,15 +42,26 @@ fun eval (var: (string*int) list) exp =
     | _ => raise InvalidExpression exp
   
 fun derivative exp var =
-  case exp of Constant c => Constant(0)
-	    | Variable v => Constant(if(v=var)then 1 else 0)
-	    | Operator("+",Pair(a::b::nil)) => Operator("+", Pair([derivative a var, derivative b var]))
-	    | Operator("-",Pair(a::b::nil)) => Operator("-", Pair([derivative a var, derivative b var]))
-	    | Operator("*", Pair(a::b::nil)) =>
-	      Operator("+",Pair([Operator("*",Pair([derivative a var, b])),Operator("*",Pair([a, derivative b var]))]))
-	    | Operator("/",Pair(a::b::nil)) =>
-	      Operator("/",Pair([ Operator("-",Pair([Operator("*",Pair([derivative a var, b])),Operator("*",Pair([a, derivative b var]))])) , Operator("*",Pair([a,b]))]))
-	    | _ => raise InvalidExpression exp
+  case exp of
+
+(*---------Pattern matching za odvajanje konstant in spremenljivk--------------------------------------------*)
+      
+      Constant c => Constant(0)
+    | Variable v => Constant(if(v=var)then 1 else 0)
+
+(*---------Pattern matching za pravila odvajanja izrazov-----------------------------------------------------*)
+
+    (* (f+g)' = f' + g' *)
+    | Operator("+",Pair(a::b::nil)) => Operator("+", Pair([derivative a var, derivative b var]))
+    (* (f-g)' = f' - g' *)
+    | Operator("-",Pair(a::b::nil)) => Operator("-", Pair([derivative a var, derivative b var]))
+    (* (f*g)' = f'*g + f*g' *)
+    | Operator("*", Pair(a::b::nil)) =>
+      Operator("+",Pair([Operator("*",Pair([derivative a var, b])),Operator("*",Pair([a, derivative b var]))]))
+    (* (f/g)' = (f'*g - f*g')/g^2 *)
+    | Operator("/",Pair(a::b::nil)) =>
+      Operator("/",Pair([ Operator("-",Pair([Operator("*",Pair([derivative a var,b])),Operator("*",Pair([a,derivative b var]))])),Operator("*",Pair([a,b]))]))
+    | _ => raise InvalidExpression exp
 
 fun removeEmpty exp =
   let
