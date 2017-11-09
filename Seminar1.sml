@@ -61,11 +61,14 @@ fun removeEmpty exp =
 		  | Operator(_, List(nil)) => Constant(0)
 		  | _ => exp
       fun checkProduct list =
-	case List.filter (fn(x)=>(removeEmpty x)=Constant(0)) list of
+	case List.filter (fn(x)=>(x)=Constant(0)) list of
 	    g::r => [Constant(0)]
-	   |[]=> List.filter (fn(x)=>not((removeEmpty x)=Constant(1))) list
+	   |[]=> List.filter (fn(x)=>not((x)=Constant(1))) list
       fun checkSum list =
-	List.filter (fn(x)=>not((removeEmpty x)=Constant(0))) list	
+	List.filter (fn(x)=>not((x)=Constant(0))) list
+      fun checkDivision exp1 exp2 =
+	case exp2 of Constant(1)=> exp1
+			       | _ => Operator("/", Pair([exp1, exp2])) 
   in
       case exp of Operator("+", Pair p) =>
 		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty x) p))))
@@ -79,9 +82,8 @@ fun removeEmpty exp =
 		  checkEmpty (Operator("*", Pair(checkProduct (List.map (fn(x)=>removeEmpty x) p))))
 		| Operator("*", List l) =>
 		  checkEmpty (Operator("*", List(checkProduct (List.map (fn(x)=>removeEmpty x) l))))
-		(*Dokončaj deljenje!!!!*)
 		| Operator("/", Pair(a::b::nil)) =>
-		  if((removeEmpty b)=Constant(1)) then removeEmpty a else exp
+		  checkEmpty (Operator("/", Pair([checkDivision (removeEmpty a)(removeEmpty b)])))
 		| _ => exp
   end
 
