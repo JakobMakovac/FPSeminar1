@@ -96,3 +96,5 @@ fun removeEmpty exp =
 		| _ => exp
   end
 
+fun combinations sez  =
+  
