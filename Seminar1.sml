@@ -30,7 +30,10 @@ fun match (exp, pat) =
 							    then SOME((valOf (match(a,ap)))@(valOf (match(b,bp))))
 							    else NONE
 					   | _ => NONE)
-	    | ListP lp => NONE(*TODO*)
+	    | ListP lp => (case exp of List l => if (List.foldl (fn(x,y)=>y andalso isSome (match x)) true (ListPair.zip(l,lp)))
+						 then SOME(List.foldl (fn(x,y)=>y@(valOf (match x))) [] (ListPair.zip(l,lp)))
+						 else NONE
+				     | _ => NONE)
 	    | Wildcard => SOME([])
 	    | _ => NONE 
 		       
