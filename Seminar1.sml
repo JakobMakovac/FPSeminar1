@@ -137,7 +137,7 @@ fun joinSimilar exp =
 		  | Pair p => List.foldl (fn(x,y)=>(countVariables x) + y) 0 p
 		  | List l => List.foldl (fn(x,y)=>(countVariables x) + y) 0 l
 		  | _ => 0
- 
+
       fun areSimilar exp1 exp2 =
 	countVariables exp1 = countVariables exp2	
 
