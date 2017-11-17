@@ -1,20 +1,43 @@
 Control.Print.printDepth := 100;
 
 datatype expression =  Constant of int |
-        Variable of string |
-        Operator of string * expression |
-        Pair of expression list |
-        List of expression list
+		       Variable of string |
+		       Operator of string * expression |
+		       Pair of expression list |
+		       List of expression list
+
+datatype pattern = ConstantP of int
+		 | VariableP of string
+		 | OperatorP of string * pattern
+		 | PairP of pattern list
+		 | ListP of pattern list
+		 | UnorderedListP of pattern list
+		 | Wildcard
 
 exception InvalidVariable of string
 exception InvalidExpression of expression
 
-(* 3*x + 7 + 4*x*x *)
-val test_case = (Operator("+", Pair([Constant(7), Operator("+", Pair([Operator("*", Pair([Constant(3), Variable("x")])), Operator("*",Pair([Constant(4), Operator("*", Pair([Variable("x"), Variable("x")]))]))]))])))
-
 fun cross (sez1, sez2) =
   List.foldl (fn(x,y)=> y@x) [] (List.map (fn(x)=>List.map (fn(y)=> (x,y)) sez2) sez1)
-    
+
+
+fun match (exp, pat) =
+  case pat of ConstantP cp => (case exp of Constant c => if cp=c then SOME([]) else NONE
+					 | _ => NONE)
+	    | VariableP vp => (SOME([(vp, exp)]))
+	    | OperatorP(ap, bp) => (case exp of Operator(a,b) => if ap=a then match(b, bp) else NONE
+					      | _ => NONE )
+	    | PairP [ap, bp] => (case exp of Pair [a, b] => if(isSome (match(a,ap)) andalso isSome (match(b,bp)))
+							    then SOME((valOf (match(a,ap)))@(valOf (match(b,bp))))
+							    else NONE
+					   | _ => NONE)
+	    | ListP lp => (case exp of List l => if (List.foldl (fn(x,y)=>y andalso isSome (match x)) true (ListPair.zip(l,lp)))
+						 then SOME(List.foldl (fn(x,y)=>y@(valOf (match x))) [] (ListPair.zip(l,lp)))
+						 else NONE
+				     | _ => NONE)
+	    | Wildcard => SOME([])
+	    | _ => NONE 
+		       
 fun eval (var: (string*int) list) exp =
   case exp of
 
@@ -109,8 +132,7 @@ fun combinations sez =
       
       fun aux acc sez =
 	case sez of [] => acc
-		  | g::r => aux (append g acc) r
-				
+		  | g::r => aux (append g acc) r	
   in
       case sez of [] => []
 		| g::r => aux (explode [g]) r
@@ -133,16 +155,48 @@ fun flatten exp =
   end
 
 
+
       
 (*--------------testi------------------------------------------------------------------*)
 
+(* 1 + (((x+3)*(3+x) + x + (3*x)) *)
 val test_case_flatten = (Operator ("+", List [
-    Constant 1,
-    Operator ("+", List [
-        Operator ("*", Pair [
-            Operator ("+", Pair [Variable "x", Constant 3]),
-            Operator ("+", Pair [Constant 3, Variable "x"])]),
-        Variable "x",
-        Operator ("*", Pair [Constant 3, Variable "x"])])]))
+				       Constant 1,
+				       Operator ("+", List [
+						     Operator ("*", Pair [
+								   Operator ("+", Pair [Variable "x", Constant 3]),
+								   Operator ("+", Pair [Constant 3, Variable "x"])]),
+						     Variable "x",
+						     Operator ("*", Pair [Constant 3, Variable "x"])])]))
 
+val test_case_combinations = [[1,3],[4],[2,5,1]]
+
+(* 3*x + 7 + 4*x*x *)
+val test_case_derivative = (Operator ("+", List [
+					  Operator ("*", Pair [
+							Constant 3,
+							Variable "x"]),
+					  Constant 7,
+					  Operator ("*", List [
+							Constant 4,
+							Variable "x",
+							Variable "x"])]))
+(*1 + 3*1 + 5*x + x + x*3 + x*x*)		       
+val test_case_joinSimilar = (Operator ("+", List [
+					   Constant 1,
+					   Operator ("*", Pair [Constant 3, Constant 1]),
+					   Operator ("*", Pair [Constant 5, Variable "x"]),
+					   Variable "x",
+					   Operator ("*", List [Variable "x", Constant 3]),
+					   Operator ("*", List [Variable "x", Variable "x"])]))
+
+val test_case_match = (Operator("+", Pair [
+				    Operator ("*", List [Variable "a", Variable "a"]),
+				    Operator ("*", List [Variable "b", Variable "b"])]),
+		       OperatorP("+", PairP [VariableP "A", VariableP "B"]))
+
+val test_derivative = derivative test_case_derivative "x";
+			  
+val test_combinations = combinations test_case_combinations
+			  
 val test_flatten = flatten test_case_flatten
