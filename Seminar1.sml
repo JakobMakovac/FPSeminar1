@@ -171,14 +171,12 @@ val test_case_flatten = (Operator ("+", List [
 
 val test_case_combinations = [[1,3],[4],[2,5,1]]
 
-(* 3*x + 7 + 4*x*x *)
-val test_case_derivative = (Operator ("+", List [
+(* 3*x + x*x *)
+val test_case_derivative = (Operator ("+", Pair [
 					  Operator ("*", Pair [
 							Constant 3,
 							Variable "x"]),
-					  Constant 7,
-					  Operator ("*", List [
-							Constant 4,
+					  Operator ("*", Pair [
 							Variable "x",
 							Variable "x"])]))
 (*1 + 3*1 + 5*x + x + x*3 + x*x*)		       
@@ -195,7 +193,7 @@ val test_case_match = (Operator("+", Pair [
 				    Operator ("*", List [Variable "b", Variable "b"])]),
 		       OperatorP("+", PairP [VariableP "A", VariableP "B"]))
 
-val test_derivative = derivative test_case_derivative "x";
+val test_derivative = removeEmpty (derivative test_case_derivative "x");
 			  
 val test_combinations = combinations test_case_combinations
 			  
