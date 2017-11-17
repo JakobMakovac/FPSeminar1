@@ -14,7 +14,7 @@ val test_case = (Operator("+", Pair([Constant(7), Operator("+", Pair([Operator("
 
 fun cross (sez1, sez2) =
   List.foldl (fn(x,y)=> y@x) [] (List.map (fn(x)=>List.map (fn(y)=> (x,y)) sez2) sez1)
-
+    
 fun eval (var: (string*int) list) exp =
   case exp of
 
@@ -97,34 +97,52 @@ fun removeEmpty exp =
 		| Operator("/", Pair(a::b::nil)) =>
 		  checkEmpty (Operator("/", Pair([checkDivision (removeEmpty a)(removeEmpty b)])))
 		| _ => exp
-  end      
-	  
-fun joinSimilar exp =
-  let
-      fun equivalence_classes f seznam = 
-	case seznam of 
-	    [] => []
-	  | g::r => 
-	    let 
-		fun get_eq_list sez = 
-		  [[g] @ List.filter (fn(x) => f x (g)) (r)]
-	    in
-		get_eq_list seznam @ equivalence_classes f (List.filter (fn(x) => f x (g) = false) (r))
-	    end
-		
-      fun countVariables exp =
-	case exp of Variable v => 1
-		  | Operator(_, e) => countVariables e
-		  | Pair p => List.foldl (fn(x,y)=>(countVariables x) + y) 0 p
-		  | List l => List.foldl (fn(x,y)=>(countVariables x) + y) 0 l
-		  | _ => 0
-
-
-      fun areSimilar exp1 exp2 =
-	countVariables exp1 = countVariables exp2	
-
-  in
-      case exp of Operator("+", List l) => equivalence_classes areSimilar l
-		| Operator("+", Pair p) => equivalence_classes areSimilar p
-		| _ => [[exp]]
   end
+
+fun combinations sez =
+  let
+      fun explode (x::nil) =
+	List.map (fn(y)=>[y]) x
+      
+      fun append a b =
+	List.foldl (fn(x,y)=>y@x) [] (List.map (fn(b1)=>(List.map (fn(a1)=> b1@[a1]) a)) b)
+      
+      fun aux acc sez =
+	case sez of [] => acc
+		  | g::r => aux (append g acc) r
+				
+  in
+      case sez of [] => []
+		| g::r => aux (explode [g]) r
+  end
+  
+	  
+
+
+fun flatten exp =
+  let
+      fun cross_l sez1 sez2 =
+	List.foldl (fn(x,y)=> y@x) [] (List.map (fn(x)=>List.map (fn(y)=>[x]@[y]) sez2) sez1)
+  in
+      case exp of Constant c => [Constant c]
+		| Variable v => [Variable v]
+		| Operator("*", Pair (a::b::nil))=>List.foldl (fn(x,y)=>y@x) [] (cross_l (flatten a) (flatten b))
+		| Operator("+", Pair p) => List.foldl (fn(x,y)=>y@(flatten x)) [] p
+		| Operator("+", List l) => List.foldl (fn(x,y)=>y@(flatten x)) [] l			 
+		| _ => [exp]
+  end
+
+
+      
+(*--------------testi------------------------------------------------------------------*)
+
+val test_case_flatten = (Operator ("+", List [
+    Constant 1,
+    Operator ("+", List [
+        Operator ("*", Pair [
+            Operator ("+", Pair [Variable "x", Constant 3]),
+            Operator ("+", Pair [Constant 3, Variable "x"])]),
+        Variable "x",
+        Operator ("*", Pair [Constant 3, Variable "x"])])]))
+
+val test_flatten = flatten test_case_flatten
