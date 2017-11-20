@@ -143,20 +143,24 @@ fun combinations sez =
 
 fun flatten exp =
   let
-      fun cross_l sez1 sez2 =
-	List.foldl (fn(x,y)=> y@x) [] (List.map (fn(x)=>List.map (fn(y)=>[x]@[y]) sez2) sez1)
+      fun multiply sez =
+	List.map (fn(x)=> List.foldl (fn(x,y)=>x@y) [] x) (combinations sez)
+
+      fun flatten_lists exp =
+	case exp of Constant c => [[Constant c]]
+		  | Variable v => [[Variable v]]
+		  | Operator("*", Pair p) => multiply (List.map (fn(x)=> flatten_lists x) p)
+		  | Operator("*", List l) => multiply (List.map (fn(x)=> flatten_lists x) l)
+		  | Operator("+", Pair p) => List.foldl (fn(x,y)=>y@(flatten_lists x)) [] p
+		  | Operator("+", List l) => List.foldl (fn(x,y)=>y@(flatten_lists x)) [] l			 
+		  | _ => [[exp]]
   in
-      case exp of Constant c => [Constant c]
-		| Variable v => [Variable v]
-		| Operator("*", Pair (a::b::nil))=>List.foldl (fn(x,y)=>y@x) [] (cross_l (flatten a) (flatten b))
-		| Operator("+", Pair p) => List.foldl (fn(x,y)=>y@(flatten x)) [] p
-		| Operator("+", List l) => List.foldl (fn(x,y)=>y@(flatten x)) [] l			 
-		| _ => [exp]
+      Operator("+", List(List.map (fn(x)=>Operator("*", List(x))) (flatten_lists exp)))
   end
 
 
 
-      
+(*      
 (*--------------testi------------------------------------------------------------------*)
 
 (* 1 + (((x+3)*(3+x) + x + (3*x)) *)
@@ -198,3 +202,4 @@ val test_derivative = removeEmpty (derivative test_case_derivative "x");
 val test_combinations = combinations test_case_combinations
 			  
 val test_flatten = flatten test_case_flatten
+*)
