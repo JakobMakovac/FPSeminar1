@@ -106,19 +106,19 @@ fun removeEmpty exp =
 			       | _ => Operator("/", Pair([exp1, exp2])) 
   in
       case exp of Operator("+", Pair p) =>
-		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty x) p))))
+		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
 		| Operator("+", List l) =>
-		  checkEmpty (Operator("+", List(checkSum (List.map (fn(x)=>removeEmpty x) l))))
+		  checkEmpty (Operator("+", List(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))
 		| Operator("-", Pair p) =>
-		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty x) p))))
+		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
 		| Operator("-", List l) =>
-		  checkEmpty (Operator("+", List(checkSum (List.map (fn(x)=>removeEmpty x) l))))	      
+		  checkEmpty (Operator("+", List(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))	      
 		| Operator("*", Pair p) =>
-		  checkEmpty (Operator("*", Pair(checkProduct (List.map (fn(x)=>removeEmpty x) p))))
+		  checkEmpty (Operator("*", Pair(checkProduct (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
 		| Operator("*", List l) =>
-		  checkEmpty (Operator("*", List(checkProduct (List.map (fn(x)=>removeEmpty x) l))))
+		  checkEmpty (Operator("*", List(checkProduct (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))
 		| Operator("/", Pair(a::b::nil)) =>
-		  checkEmpty (Operator("/", Pair([checkDivision (removeEmpty a)(removeEmpty b)])))
+		  checkEmpty (Operator("/", Pair([checkDivision (removeEmpty (checkEmpty a))(removeEmpty (checkEmpty b))])))
 		| _ => exp
   end
 
@@ -137,9 +137,6 @@ fun combinations sez =
       case sez of [] => []
 		| g::r => aux (explode [g]) r
   end
-  
-	  
-
 
 fun flatten exp =
   let
@@ -158,9 +155,40 @@ fun flatten exp =
       Operator("+", List(List.map (fn(x)=>Operator("*", List(x))) (flatten_lists exp)))
   end
 
+fun joinSimilar (Operator("+", list)) =
+  let
+      fun getVars izr = case izr of Variable v => [v]
+				  | Operator("*", Pair p) => List.foldl (fn(x,y)=>y@(getVars x)) [] p
+				  | Operator("*", List l) => List.foldl (fn(x,y)=>y@(getVars x)) [] l
+				  | _ => []
+      fun standardize exp =
+	case exp of Constant c => [Constant 1, Constant c]
+		  | Variable v => [Constant 1, Variable v]
+		  | Operator("*", Pair p) => (p @ [Constant 1])
+		  | Operator("*", List l) => (l @ [Constant 1])
+		  | _ => [exp]
 
+      fun multiplyConsts a =
+	[Constant(List.foldl (fn(x,y)=>case x of Constant c => y*c | _ => y) 1 a)] @
+	List.filter (fn(x)=>case x of Constant c => false | _ => true) a
 
-(*      
+      fun eq_classes f sez =
+	case sez of [] => []
+		  | g::r =>
+		    let
+			fun get_eq_list seznam =
+			  [[g] @ List.filter (fn(x)=>f x (g)) (r)]
+		    in
+			get_eq_list sez @
+			eq_classes f (List.filter (fn(x)=>f x (g) = false) (r))
+		    end
+
+  in
+      case list of List l => (List.map (fn(x)=> multiplyConsts x) (List.map (fn(x)=>standardize x) l))
+		 | _ => raise InvalidExpression (Operator("+", list)) 
+  end
+
+     
 (*--------------testi------------------------------------------------------------------*)
 
 (* 1 + (((x+3)*(3+x) + x + (3*x)) *)
@@ -189,6 +217,7 @@ val test_case_joinSimilar = (Operator ("+", List [
 					   Operator ("*", Pair [Constant 3, Constant 1]),
 					   Operator ("*", Pair [Constant 5, Variable "x"]),
 					   Variable "x",
+					   Variable "y",
 					   Operator ("*", List [Variable "x", Constant 3]),
 					   Operator ("*", List [Variable "x", Variable "x"])]))
 
@@ -202,4 +231,6 @@ val test_derivative = removeEmpty (derivative test_case_derivative "x");
 val test_combinations = combinations test_case_combinations
 			  
 val test_flatten = flatten test_case_flatten
-*)
+
+val test_joinSimilar = joinSimilar test_case_joinSimilar
+
