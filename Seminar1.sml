@@ -158,10 +158,27 @@ fun flatten exp =
 
 fun joinSimilar (Operator("+", list)) =
   let
+      fun equalSets set1 set2 =
+	let
+	    fun exists x set =
+	      not (null (List.filter (fn(y)=> y = x) set))
+	    fun removeFirst acc x set =
+	      case set of g::r => if(g = x) then acc@r else removeFirst (acc@[g]) x r
+			| _ => set
+	in
+	    case set1 of g::r => if(exists g set2) then (equalSets r (removeFirst [] g set2)) else false
+		       | [] => (null set2)
+	end
       fun getVars izr = case izr of Variable v => [v]
 				  | Operator("*", Pair p) => List.foldl (fn(x,y)=>y@(getVars x)) [] p
 				  | Operator("*", List l) => List.foldl (fn(x,y)=>y@(getVars x)) [] l
 				  | _ => []
+
+      fun getConsts izr = case izr of Constant c => c
+				  | Operator("*", Pair p) => List.foldl (fn(x,y)=>y + (getConsts x)) 0 p
+				  | Operator("*", List l) => List.foldl (fn(x,y)=>y + (getConsts x)) 0 l
+				  | _ => 0
+	
       fun standardize exp =
 	case exp of Constant c => [Constant 1, Constant c]
 		  | Variable v => [Constant 1, Variable v]
@@ -169,10 +186,16 @@ fun joinSimilar (Operator("+", list)) =
 		  | Operator("*", List l) => (l @ [Constant 1])
 		  | _ => [exp]
 
+      fun getConst (Constant c) = c
+			     
       fun multiplyConsts a =
 	[Constant(List.foldl (fn(x,y)=>case x of Constant c => y*c | _ => y) 1 a)] @
 	List.filter (fn(x)=>case x of Constant c => false | _ => true) a
 
+      fun sumConsts a =
+	[Constant (List.foldl (fn(x,y)=>y+getConst(hd x)) 0 a )] @ (tl(hd a))
+	
+		    
       fun eq_classes f sez =
 	case sez of [] => []
 		  | g::r =>
@@ -183,25 +206,16 @@ fun joinSimilar (Operator("+", list)) =
 			get_eq_list sez @
 			eq_classes f (List.filter (fn(x)=>f x (g) = false) (r))
 		    end
-			
-fun equalSets set1 set2 =
-  let
-      fun exists x set =
-	not (null (List.filter (fn(y)=> y = x) set))
-      fun removeFirst acc x set =
-	case set of g::r => if(g = x) then acc@r else removeFirst (acc@[g]) x r
-		  | _ => set
-  in
-      case set1 of g::r => if(exists g set2) then (equalSets r (removeFirst [] g set2)) else false
-		 | [] => (null set2)
-  end
 
+      fun compareFun set1 set2 =
+	equalSets (List.map (fn(x)=>getVars x) set1) (List.map (fn(x)=>getVars x) set2)
 
-  in
-      case list of List l => (List.map (fn(x)=> multiplyConsts x) (List.map (fn(x)=>standardize x) l))
+      val listedSimilar = case list of List l=>eq_classes (compareFun) (List.map (fn(x)=>multiplyConsts x) (List.map (fn(x)=>standardize x) l))
 		 | _ => raise InvalidExpression (Operator("+", list)) 
+  in
+      Operator("+", List (List.map (fn(x)=>Operator("*", List x)) (List.map (fn(x)=>sumConsts x) listedSimilar)))
   end
-
+      
      
 (*--------------testi------------------------------------------------------------------*)
 
