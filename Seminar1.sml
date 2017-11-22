@@ -35,6 +35,7 @@ fun match (exp, pat) =
 						 then SOME(List.foldl (fn(x,y)=>y@(valOf (match x))) [] (ListPair.zip(l,lp)))
 						 else NONE
 				     | _ => NONE)
+	    | UnorderedListP ulp => NONE
 	    | Wildcard => SOME([])
 	    | _ => NONE 
 		       
@@ -215,9 +216,67 @@ fun joinSimilar (Operator("+", list)) =
   in
       Operator("+", List (List.map (fn(x)=>Operator("*", List x)) (List.map (fn(x)=>sumConsts x) listedSimilar)))
   end
+
+fun divide (e1,e2) =
+  let
+      fun standardize (Operator("+", List l)) =
+	List.map (fn(x)=> case x of Operator("*", List s) => s | _ => [x]) l
+
+      fun getConst sez = case hd sez of Constant c => c | _ => 0
+
+      fun countVars sez = List.foldl (fn(x,y)=>y+(case x of Variable v => 1 | _ => 0)) 0 sez
+
+      fun parse pol =
+	List.map (fn(x)=> (getConst x, countVars x) ) pol
+
+      fun sort (pol:(int*int) list) =
+	case pol of [] => []
+	    | [x] => [x]
+	    | g :: r =>
+	      let
+		  fun partition seznam =
+		    sort(List.filter (fn(x)=>(#2 x)>(#2 g)) seznam) @ [g] @
+		    sort(List.filter (fn(x)=>(#2 x)<=(#2 g)) seznam)
+	      in
+		  partition r
+	      end 
       
-     
-(*--------------testi------------------------------------------------------------------*)
+      val e1ParsedSorted = sort (parse (standardize (joinSimilar (flatten e1))))
+      val e2ParsedSorted = sort (parse (standardize (joinSimilar (flatten e2))))
+
+      fun divide (p1:(int*int)list) (p2:(int*int)list) =
+	((#1 (hd p1)) div (#1 (hd p2)), (#2 (hd p1))-(#2 (hd p2)))
+
+      fun multiply (a,b) (pol:(int*int)list) =
+	List.map (fn(x)=> (~(#1 x)*a, (#2 x)+b)) pol
+
+      fun subtract p1 p2 =
+	List.map (fn(x)=>x) p2
+
+      fun division pol1 pol2 =
+	let
+	    val firstTerm = divide pol1 pol2
+	in
+	    if hd pol1 = (0,0)
+	    then []
+	    else [firstTerm] @ division (subtract (pol1) (multiply firstTerm pol2)) (pol2)
+	end
+  in
+      multiply (divide e1ParsedSorted e2ParsedSorted) e2ParsedSorted
+  end
+
+
+     val test_divide = divide (Operator ("+", List [
+    Operator ("*",List [Constant 12,Variable "x",Variable "x",Variable "x",Variable "x",Variable "x"]),
+    Operator ("*",List [Constant 18,Variable "x",Variable "x",Variable "x"]),
+    Operator ("*",List [Constant 3, Operator("*", Pair[Variable "x",Variable "x"])]),
+    Operator ("*",Pair [Constant 6,Variable "x"]),
+    Operator("+", List [Constant 1, Constant 2])
+]), Operator ("+", List [
+    Operator ("*",List [Constant 3]),
+    Operator ("*",List [Constant 3,Variable "x",Variable "x"])
+]));
+(*(*--------------testi------------------------------------------------------------------*)
 
 (* 1 + (((x+3)*(3+x) + x + (3*x)) *)
 val test_case_flatten = (Operator ("+", List [
@@ -262,3 +321,4 @@ val test_flatten = flatten test_case_flatten
 
 val test_joinSimilar = joinSimilar test_case_joinSimilar
 
+*)
