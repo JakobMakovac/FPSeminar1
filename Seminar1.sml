@@ -138,9 +138,6 @@ fun combinations sez =
 		| g::r => aux (explode [g]) r
   end
   
-	  
-
-
 fun flatten exp =
   let
       fun multiply sez =
@@ -158,6 +155,17 @@ fun flatten exp =
       Operator("+", List(List.map (fn(x)=>Operator("*", List(x))) (flatten_lists exp)))
   end
 
+fun equalSets set1 set2 =
+  let
+      fun exists x set =
+	not (null (List.filter (fn(y)=> y = x) set))
+      fun removeFirst acc x set =
+	case set of g::r => if(g = x) then acc@r else removeFirst (acc@[g]) x r
+		  | _ => set
+  in
+      case set1 of g::r => if(exists g set2) then (equalSets r (removeFirst [] g set2)) else false
+		 | [] => (null set2)
+  end
 
 
 (*      
