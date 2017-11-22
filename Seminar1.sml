@@ -155,6 +155,7 @@ fun flatten exp =
       Operator("+", List(List.map (fn(x)=>Operator("*", List(x))) (flatten_lists exp)))
   end
 
+
 fun joinSimilar (Operator("+", list)) =
   let
       fun getVars izr = case izr of Variable v => [v]
@@ -182,6 +183,19 @@ fun joinSimilar (Operator("+", list)) =
 			get_eq_list sez @
 			eq_classes f (List.filter (fn(x)=>f x (g) = false) (r))
 		    end
+			
+fun equalSets set1 set2 =
+  let
+      fun exists x set =
+	not (null (List.filter (fn(y)=> y = x) set))
+      fun removeFirst acc x set =
+	case set of g::r => if(g = x) then acc@r else removeFirst (acc@[g]) x r
+		  | _ => set
+  in
+      case set1 of g::r => if(exists g set2) then (equalSets r (removeFirst [] g set2)) else false
+		 | [] => (null set2)
+  end
+
 
   in
       case list of List l => (List.map (fn(x)=> multiplyConsts x) (List.map (fn(x)=>standardize x) l))
