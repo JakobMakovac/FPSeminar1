@@ -250,19 +250,21 @@ fun divide (e1,e2) =
       fun multiply (a,b) (pol:(int*int)list) =
 	List.map (fn(x)=> (~(#1 x)*a, (#2 x)+b)) pol
 
-      fun subtract p1 p2 =
-	List.map (fn(x)=>x) p2
+      fun subtract (p1:(int*int)list) (p2:(int*int)list) =
+	case p2 of [] => p1
+		 | g::r => subtract
+			       (if not (null (List.filter (fn(x)=>(#2 x)=(#2 g)) p1))
+				then (List.map (fn(x)=>if((#2 g)=(#2 x)) then ((#1 x)+(#1 g), #2 g) else x) p1)
+				else (sort (p1@[g]))) r
 
+      fun removeEmpty (pol:(int*int)list) = List.filter (fn(x)=> not ((#1 x)=0)) pol
+	
       fun division pol1 pol2 =
-	let
-	    val firstTerm = divide pol1 pol2
-	in
-	    if hd pol1 = (0,0)
+	    if pol1 = []
 	    then []
-	    else [firstTerm] @ division (subtract (pol1) (multiply firstTerm pol2)) (pol2)
-	end
+	    else [divide pol1 pol2] @ division (removeEmpty (subtract (pol1) (multiply (divide pol1 pol2) pol2))) (pol2)
   in
-      multiply (divide e1ParsedSorted e2ParsedSorted) e2ParsedSorted
+      (division e1ParsedSorted e2ParsedSorted)
   end
 
 
