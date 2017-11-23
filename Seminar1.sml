@@ -257,27 +257,23 @@ fun divide (e1,e2) =
 				then (List.map (fn(x)=>if((#2 g)=(#2 x)) then ((#1 x)+(#1 g), #2 g) else x) p1)
 				else (sort (p1@[g]))) r
 
-      fun removeEmpty (pol:(int*int)list) = List.filter (fn(x)=> not ((#1 x)=0)) pol
-	
+      fun removeZeros (pol:(int*int)list) = List.filter (fn(x)=> not ((#1 x)=0)) pol
+
+      fun getVars x =
+	if x = 0
+	then []
+	else [Variable("x")] @ getVars (x-1)
+							
       fun division pol1 pol2 =
 	    if pol1 = []
 	    then []
-	    else [divide pol1 pol2] @ division (removeEmpty (subtract (pol1) (multiply (divide pol1 pol2) pol2))) (pol2)
+	    else [divide pol1 pol2] @ division (removeZeros (subtract (pol1) (multiply (divide pol1 pol2) pol2))) (pol2)
   in
-      (division e1ParsedSorted e2ParsedSorted)
+      removeEmpty (Operator("+", List (List.map (fn(x)=>Operator("*", List([Constant(#1 x)]@(getVars (#2 x))))) (division e1ParsedSorted e2ParsedSorted))))
   end
 
 
-     val test_divide = divide (Operator ("+", List [
-    Operator ("*",List [Constant 12,Variable "x",Variable "x",Variable "x",Variable "x",Variable "x"]),
-    Operator ("*",List [Constant 18,Variable "x",Variable "x",Variable "x"]),
-    Operator ("*",List [Constant 3, Operator("*", Pair[Variable "x",Variable "x"])]),
-    Operator ("*",Pair [Constant 6,Variable "x"]),
-    Operator("+", List [Constant 1, Constant 2])
-]), Operator ("+", List [
-    Operator ("*",List [Constant 3]),
-    Operator ("*",List [Constant 3,Variable "x",Variable "x"])
-]));
+    
 (*(*--------------testi------------------------------------------------------------------*)
 
 (* 1 + (((x+3)*(3+x) + x + (3*x)) *)
@@ -315,6 +311,17 @@ val test_case_match = (Operator("+", Pair [
 				    Operator ("*", List [Variable "b", Variable "b"])]),
 		       OperatorP("+", PairP [VariableP "A", VariableP "B"]))
 
+val test_case_divide = (Operator ("+", List [
+    Operator ("*",List [Constant 12,Variable "x",Variable "x",Variable "x",Variable "x",Variable "x"]),
+    Operator ("*",List [Constant 18,Variable "x",Variable "x",Variable "x"]),
+    Operator ("*",List [Constant 3, Operator("*", Pair[Variable "x",Variable "x"])]),
+    Operator ("*",Pair [Constant 6,Variable "x"]),
+    Operator("+", List [Constant 1, Constant 2])
+]), Operator ("+", List [
+    Operator ("*",List [Constant 3]),
+    Operator ("*",List [Constant 3,Variable "x",Variable "x"])
+]))
+
 val test_derivative = removeEmpty (derivative test_case_derivative "x");
 			  
 val test_combinations = combinations test_case_combinations
@@ -322,5 +329,7 @@ val test_combinations = combinations test_case_combinations
 val test_flatten = flatten test_case_flatten
 
 val test_joinSimilar = joinSimilar test_case_joinSimilar
+
+val test_divide = divide test_case_divide;
 
 *)
