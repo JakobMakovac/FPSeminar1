@@ -84,7 +84,7 @@ fun derivative exp var =
       Operator("+",Pair([Operator("*",Pair([derivative a var, b])),Operator("*",Pair([a, derivative b var]))]))
     (* (f/g)' = (f'*g - f*g')/g^2 *)
     | Operator("/",Pair(a::b::nil)) =>
-      Operator("/",Pair([ Operator("-",Pair([Operator("*",Pair([derivative a var,b])),Operator("*",Pair([a,derivative b var]))])),Operator("*",Pair([a,b]))]))
+      Operator("/",Pair([ Operator("-",Pair([Operator("*",Pair([derivative a var,b])),Operator("*",Pair([a,derivative b var]))])),Operator("*",Pair([b,b]))]))
     | _ => raise InvalidExpression exp
 
 fun removeEmpty exp =
@@ -103,23 +103,25 @@ fun removeEmpty exp =
 	List.filter (fn(x)=>not((x)=Constant(0))) list
 
       fun checkDivision exp1 exp2 =
-	case exp2 of Constant(1)=> exp1
-			       | _ => Operator("/", Pair([exp1, exp2])) 
+	if (exp1 = Constant(0))
+	then Constant(0)
+	else case exp2 of Constant(1)=> exp1
+			| _ => Operator("/", Pair([exp1, exp2])) 
   in
       case exp of Operator("+", Pair p) =>
 		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
 		| Operator("+", List l) =>
 		  checkEmpty (Operator("+", List(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))
 		| Operator("-", Pair p) =>
-		  checkEmpty (Operator("+", Pair(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
+		  checkEmpty (Operator("-", Pair(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
 		| Operator("-", List l) =>
-		  checkEmpty (Operator("+", List(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))	      
+		  checkEmpty (Operator("-", List(checkSum (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))	      
 		| Operator("*", Pair p) =>
 		  checkEmpty (Operator("*", Pair(checkProduct (List.map (fn(x)=>removeEmpty (checkEmpty x)) p))))
 		| Operator("*", List l) =>
 		  checkEmpty (Operator("*", List(checkProduct (List.map (fn(x)=>removeEmpty (checkEmpty x)) l))))
 		| Operator("/", Pair(a::b::nil)) =>
-		  checkEmpty (Operator("/", Pair([checkDivision (removeEmpty (checkEmpty a))(removeEmpty (checkEmpty b))])))
+		  checkEmpty (Operator("/", Pair([checkDivision (removeEmpty (checkEmpty a)) (removeEmpty (checkEmpty b))])))
 		| _ => exp
   end
 
