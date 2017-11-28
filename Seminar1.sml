@@ -100,8 +100,12 @@ fun removeEmpty exp =
 		  | _ => exp
 			     
       fun checkProduct list =
-	case List.filter (fn(x)=>(x)=Constant(0)) list of g::r => [Constant(0)]
-							| [] => List.filter (fn(x)=>not((x)=Constant(1))) list
+	if not (null(List.filter (fn(x)=>(x)=Constant(0)) list))
+	then [Constant(0)]
+	else if null(List.filter (fn(x)=>not((x)=Constant(1))) list)
+	then [Constant(1)]
+	else List.filter (fn(x)=>not((x)=Constant(1))) list
+							  
       fun checkSum list =
 	List.filter (fn(x)=>not((x)=Constant(0))) list
 
