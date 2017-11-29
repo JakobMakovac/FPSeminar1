@@ -37,10 +37,33 @@ fun match (exp, pat) =
 						 then SOME(List.foldl (fn(x,y)=>y@(valOf (match x))) [] (ListPair.zip(l,lp)))
 						 else NONE
 				     | _ => NONE)
-	    | UnorderedListP ulp => NONE
+	    | UnorderedListP ulp =>
+	      let
+		  fun permutacije sez =
+		    let
+			fun f1 x y =
+			  case y of nil => [[x]]
+				  | g::r => (x::g::r) :: (List.map (fn z => g::z) (f1 x r))
+							     
+			fun appendAll x =
+			  case x of nil => nil
+				  | g::r => g @ (appendAll r)
+		    in
+			case sez of nil => [nil]
+				 | g::r => appendAll (map (f1 g) (permutacije r))
+		    end
+		  fun najdi_match perms =
+		    case perms of [] => NONE
+				| g::r => if isSome(match(exp, ListP(g)))
+					  then match(exp, ListP(g))
+					  else najdi_match r
+	      in
+		  najdi_match (permutacije ulp)
+	      end
 	    | Wildcard => SOME([])
 	    | _ => NONE
-		   
+		       
+		       
 		       
 fun eval (var: (string*int) list) exp =
   case exp of
